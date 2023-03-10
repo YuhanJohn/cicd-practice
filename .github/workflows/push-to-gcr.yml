@@ -1,0 +1,38 @@
+name: Push to GCR GitHub Action
+on: [push]
+jobs:
+  build-and-push-to-gcr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: "read"
+      id-token: "write"
+    env:
+      PROJECT_ID: mightyf2e
+      REGISTRY: asia-east1-docker.pkg.dev
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: `google-github-actions/auth@v0.4.0'
+        with:
+          token_format: access_token
+          credentials_json: '${{ secrets.GOOGLE_CREDENTIALS }}'
+
+      - name: Login to Artifact Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
+
+      - uses: RafikFarhad/push-to-gcr-github-action@v5-beta
+        with:
+          # gcloud_service_key: ${{ secrets.GCLOUD_SERVICE_KEY }} # can be base64 encoded or plain text || not needed if you use google-github-actions/auth
+          registry: gcr.io
+          project_id: my-awesome-project
+          image_name: backend
+          image_tag: latest,v1
+          dockerfile: ./Dockerfile
+          context: .
